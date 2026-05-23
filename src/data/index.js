@@ -1,5 +1,6 @@
 export { StarCatalog, STAR_LAYERS, generateTestStars } from './starCatalog.js';
 export { getBrightStars } from './brightStars.js';
+export { generateExtendedStars, mergeStarCatalogs } from './extendedStars.js';
 export {
   CONSTELLATIONS,
   CONSTELLATION_LINES,

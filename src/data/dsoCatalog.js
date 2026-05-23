@@ -1,0 +1,222 @@
+/**
+ * 深空天体数据管理
+ * 包含梅西耶、科德韦尔、精选 NGC/IC 天体
+ */
+
+// ============================================
+// 深空天体类型定义
+// ============================================
+
+export const DSO_TYPES = {
+  GALAXY: { code: 'G', name: '星系', symbol: '⬭', color: '#ffaa66' },
+  NEBULA: { code: 'N', name: '星云', symbol: '○', color: '#66aaff' },
+  PLANETARY_NEBULA: { code: 'PN', name: '行星状星云', symbol: '◎', color: '#aa66ff' },
+  OPEN_CLUSTER: { code: 'OC', name: '疏散星团', symbol: '✦', color: '#ffff66' },
+  GLOBULAR_CLUSTER: { code: 'GC', name: '球状星团', symbol: '✶', color: '#ffcc66' },
+  SUPERNOVA_REMNANT: { code: 'SNR', name: '超新星遗迹', symbol: '✧', color: '#ff6666' },
+  DARK_NEBULA: { code: 'DN', name: '暗星云', symbol: '◌', color: '#666666' },
+  HII_REGION: { code: 'HII', name: 'HII区', symbol: '◇', color: '#ff88aa' },
+  MULTIPLE: { code: 'MUL', name: '复合天体', symbol: '✡', color: '#88ffaa' }
+};
+
+// ============================================
+// 梅西耶天体（110个）
+// ============================================
+
+export const MESSIER_OBJECTS = [
+  { m: 'M1', ngc: 'NGC 1952', name: '蟹状星云', type: 'SNR', ra: 83.6, dec: 22.0, mag: 8.4, size: '6×4', con: 'Tau', desc: '1054年超新星遗迹，含脉冲星' },
+  { m: 'M2', ngc: 'NGC 7089', name: '', type: 'GC', ra: 323.4, dec: -0.8, mag: 6.3, size: '16', con: 'Aqr', desc: '球状星团' },
+  { m: 'M3', ngc: 'NGC 5272', name: '', type: 'GC', ra: 205.5, dec: 28.4, mag: 6.2, size: '18', con: 'CVn', desc: '亮球状星团' },
+  { m: 'M4', ngc: 'NGC 6121', name: '', type: 'GC', ra: 245.9, dec: -26.5, mag: 5.9, size: '36', con: 'Sco', desc: '最近球状星团之一' },
+  { m: 'M5', ngc: 'NGC 5904', name: '', type: 'GC', ra: 229.6, dec: 2.1, mag: 6.0, size: '23', con: 'Ser', desc: '亮球状星团' },
+  { m: 'M6', ngc: 'NGC 6405', name: '蝴蝶星团', type: 'OC', ra: 265.1, dec: -32.2, mag: 4.2, size: '25', con: 'Sco', desc: '疏散星团' },
+  { m: 'M7', ngc: 'NGC 6475', name: '托勒密星团', type: 'OC', ra: 268.5, dec: -34.8, mag: 3.3, size: '80', con: 'Sco', desc: '肉眼可见疏散星团' },
+  { m: 'M8', ngc: 'NGC 6523', name: '礁湖星云', type: 'N', ra: 270.9, dec: -24.4, mag: 6.0, size: '90×40', con: 'Sgr', desc: '发射星云，含疏散星团' },
+  { m: 'M9', ngc: 'NGC 6333', name: '', type: 'GC', ra: 259.8, dec: -18.5, mag: 7.9, size: '12', con: 'Oph', desc: '球状星团' },
+  { m: 'M10', ngc: 'NGC 6254', name: '', type: 'GC', ra: 254.3, dec: -4.1, mag: 6.6, size: '20', con: 'Oph', desc: '球状星团' },
+  { m: 'M11', ngc: 'NGC 6705', name: '野鸭星团', type: 'OC', ra: 282.8, dec: -6.3, mag: 6.3, size: '14', con: 'Sct', desc: '密集疏散星团' },
+  { m: 'M12', ngc: 'NGC 6218', name: '', type: 'GC', ra: 251.8, dec: -1.9, mag: 6.6, size: '16', con: 'Oph', desc: '球状星团' },
+  { m: 'M13', ngc: 'NGC 6205', name: '武仙座大星团', type: 'GC', ra: 250.4, dec: 36.5, mag: 5.8, size: '20', con: 'Her', desc: '北天最亮球状星团' },
+  { m: 'M14', ngc: 'NGC 6402', name: '', type: 'GC', ra: 264.4, dec: -3.3, mag: 7.6, size: '11', con: 'Oph', desc: '球状星团' },
+  { m: 'M15', ngc: 'NGC 7078', name: '', type: 'GC', ra: 322.5, dec: 12.2, mag: 6.2, size: '18', con: 'Peg', desc: '亮球状星团' },
+  { m: 'M16', ngc: 'NGC 6611', name: '鹰星云', type: 'N', ra: 274.7, dec: -13.8, mag: 6.4, size: '35', con: 'Ser', desc: '发射星云，创生之柱' },
+  { m: 'M17', ngc: 'NGC 6618', name: '奥米加星云', type: 'N', ra: 275.2, dec: -16.2, mag: 6.0, size: '46×37', con: 'Sgr', desc: '发射星云' },
+  { m: 'M18', ngc: 'NGC 6613', name: '', type: 'OC', ra: 274.7, dec: -17.1, mag: 7.5, size: '9', con: 'Sgr', desc: '疏散星团' },
+  { m: 'M19', ngc: 'NGC 6273', name: '', type: 'GC', ra: 255.3, dec: -26.3, mag: 7.2, size: '17', con: 'Oph', desc: '球状星团' },
+  { m: 'M20', ngc: 'NGC 6514', name: '三裂星云', type: 'N', ra: 270.7, dec: -23.0, mag: 6.3, size: '28', con: 'Sgr', desc: '发射/反射复合星云' },
+  { m: 'M21', ngc: 'NGC 6531', name: '', type: 'OC', ra: 271.6, dec: -22.5, mag: 6.5, size: '13', con: 'Sgr', desc: '疏散星团' },
+  { m: 'M22', ngc: 'NGC 6656', name: '', type: 'GC', ra: 279.1, dec: -23.9, mag: 5.1, size: '32', con: 'Sgr', desc: '亮球状星团' },
+  { m: 'M23', ngc: 'NGC 6494', name: '', type: 'OC', ra: 269.3, dec: -19.0, mag: 6.9, size: '27', con: 'Sgr', desc: '疏散星团' },
+  { m: 'M24', ngc: 'IC 4715', name: '小人马恒星云', type: 'MUL', ra: 274.0, dec: -18.5, mag: 4.6, size: '90', con: 'Sgr', desc: '银河背景恒星云' },
+  { m: 'M25', ngc: 'IC 4725', name: '', type: 'OC', ra: 277.5, dec: -19.3, mag: 4.6, size: '32', con: 'Sgr', desc: '疏散星团' },
+  { m: 'M26', ngc: 'NGC 6694', name: '', type: 'OC', ra: 283.4, dec: -9.4, mag: 8.0, size: '15', con: 'Sct', desc: '疏散星团' },
+  { m: 'M27', ngc: 'NGC 6853', name: '哑铃星云', type: 'PN', ra: 299.9, dec: 22.7, mag: 7.5, size: '8×6', con: 'Vul', desc: '著名行星状星云' },
+  { m: 'M28', ngc: 'NGC 6626', name: '', type: 'GC', ra: 276.1, dec: -24.9, mag: 6.9, size: '11', con: 'Sgr', desc: '球状星团' },
+  { m: 'M29', ngc: 'NGC 6913', name: '', type: 'OC', ra: 305.0, dec: 38.5, mag: 7.1, size: '7', con: 'Cyg', desc: '疏散星团' },
+  { m: 'M30', ngc: 'NGC 7099', name: '', type: 'GC', ra: 325.1, dec: -23.2, mag: 7.2, size: '11', con: 'Cap', desc: '球状星团' },
+  { m: 'M31', ngc: 'NGC 224', name: '仙女座星系', type: 'G', ra: 10.7, dec: 41.3, mag: 3.4, size: '178×63', con: 'And', desc: '最近大星系，本星系群最大' },
+  { m: 'M32', ngc: 'NGC 221', name: '', type: 'G', ra: 10.7, dec: 40.9, mag: 8.1, size: '8×6', con: 'And', desc: 'M31 伴星系' },
+  { m: 'M33', ngc: 'NGC 598', name: '三角座星系', type: 'G', ra: 23.5, dec: 30.7, mag: 5.7, size: '71×42', con: 'Tri', desc: '本星系群第三大星系' },
+  { m: 'M34', ngc: 'NGC 1039', name: '', type: 'OC', ra: 40.5, dec: 42.7, mag: 5.5, size: '35', con: 'Per', desc: '疏散星团' },
+  { m: 'M35', ngc: 'NGC 2168', name: '', type: 'OC', ra: 92.3, dec: 24.3, mag: 5.3, size: '28', con: 'Gem', desc: '疏散星团' },
+  { m: 'M36', ngc: 'NGC 1960', name: '', type: 'OC', ra: 84.0, dec: 34.1, mag: 6.3, size: '12', con: 'Aur', desc: '疏散星团' },
+  { m: 'M37', ngc: 'NGC 2099', name: '', type: 'OC', ra: 88.1, dec: 32.6, mag: 6.2, size: '24', con: 'Aur', desc: '疏散星团' },
+  { m: 'M38', ngc: 'NGC 1912', name: '', type: 'OC', ra: 82.2, dec: 35.9, mag: 7.4, size: '21', con: 'Aur', desc: '疏散星团' },
+  { m: 'M39', ngc: 'NGC 7092', name: '', type: 'OC', ra: 323.0, dec: 48.4, mag: 5.5, size: '32', con: 'Cyg', desc: '疏散星团' },
+  { m: 'M40', ngc: '', name: '温内克4', type: 'MUL', ra: 185.6, dec: 58.1, mag: 9.0, size: '', con: 'UMa', desc: '光学双星' },
+  { m: 'M41', ngc: 'NGC 2287', name: '', type: 'OC', ra: 100.3, dec: -20.8, mag: 4.5, size: '38', con: 'CMa', desc: '疏散星团' },
+  { m: 'M42', ngc: 'NGC 1976', name: '猎户座大星云', type: 'N', ra: 83.8, dec: -5.4, mag: 4.0, size: '85×60', con: 'Ori', desc: '最亮发射星云' },
+  { m: 'M43', ngc: 'NGC 1982', name: '德梅朗星云', type: 'N', ra: 83.9, dec: -5.3, mag: 9.0, size: '20×15', con: 'Ori', desc: 'M42 组成部分' },
+  { m: 'M44', ngc: 'NGC 2632', name: '鬼星团/蜂巢星团', type: 'OC', ra: 130.1, dec: 19.6, mag: 3.7, size: '95', con: 'Cnc', desc: '肉眼可见疏散星团' },
+  { m: 'M45', ngc: '', name: '昴星团/七姐妹星团', type: 'OC', ra: 56.8, dec: 24.1, mag: 1.6, size: '110', con: 'Tau', desc: '最亮疏散星团' },
+  { m: 'M46', ngc: 'NGC 2437', name: '', type: 'OC', ra: 115.4, dec: -14.9, mag: 6.1, size: '27', con: 'Pup', desc: '疏散星团' },
+  { m: 'M47', ngc: 'NGC 2422', name: '', type: 'OC', ra: 114.2, dec: -14.5, mag: 4.4, size: '30', con: 'Pup', desc: '疏散星团' },
+  { m: 'M48', ngc: 'NGC 2548', name: '', type: 'OC', ra: 123.4, dec: -5.8, mag: 5.8, size: '54', con: 'Hya', desc: '疏散星团' },
+  { m: 'M49', ngc: 'NGC 4472', name: '', type: 'G', ra: 187.4, dec: 8.0, mag: 8.4, size: '10×8', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M50', ngc: 'NGC 2323', name: '', type: 'OC', ra: 105.7, dec: -8.3, mag: 5.9, size: '16', con: 'Mon', desc: '疏散星团' },
+  { m: 'M51', ngc: 'NGC 5194', name: '涡状星系', type: 'G', ra: 202.5, dec: 47.2, mag: 8.4, size: '11×7', con: 'CVn', desc: '正面旋涡星系' },
+  { m: 'M52', ngc: 'NGC 7654', name: '', type: 'OC', ra: 351.2, dec: 61.6, mag: 7.3, size: '13', con: 'Cas', desc: '疏散星团' },
+  { m: 'M53', ngc: 'NGC 5024', name: '', type: 'GC', ra: 198.2, dec: 18.2, mag: 7.7, size: '13', con: 'Com', desc: '球状星团' },
+  { m: 'M54', ngc: 'NGC 6715', name: '', type: 'GC', ra: 283.8, dec: -30.5, mag: 7.6, size: '12', con: 'Sgr', desc: '球状星团' },
+  { m: 'M55', ngc: 'NGC 6809', name: '', type: 'GC', ra: 294.0, dec: -30.9, mag: 7.0, size: '19', con: 'Sgr', desc: '球状星团' },
+  { m: 'M56', ngc: 'NGC 6779', name: '', type: 'GC', ra: 287.4, dec: 30.2, mag: 8.3, size: '7', con: 'Lyr', desc: '球状星团' },
+  { m: 'M57', ngc: 'NGC 6720', name: '环状星云', type: 'PN', ra: 283.4, dec: 33.0, mag: 8.8, size: '1.4×1.1', con: 'Lyr', desc: '著名行星状星云' },
+  { m: 'M58', ngc: 'NGC 4579', name: '', type: 'G', ra: 189.4, dec: 11.8, mag: 9.7, size: '6×5', con: 'Vir', desc: '棒旋星系' },
+  { m: 'M59', ngc: 'NGC 4621', name: '', type: 'G', ra: 190.7, dec: 11.7, mag: 9.6, size: '5×4', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M60', ngc: 'NGC 4649', name: '', type: 'G', ra: 191.0, dec: 11.6, mag: 8.8, size: '7×6', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M61', ngc: 'NGC 4303', name: '', type: 'G', ra: 185.5, dec: 4.5, mag: 9.7, size: '6×6', con: 'Vir', desc: '旋涡星系' },
+  { m: 'M62', ngc: 'NGC 6266', name: '', type: 'GC', ra: 255.3, dec: -30.1, mag: 6.6, size: '15', con: 'Oph', desc: '球状星团' },
+  { m: 'M63', ngc: 'NGC 5055', name: '向日葵星系', type: 'G', ra: 198.9, dec: 42.0, mag: 8.6, size: '12×8', con: 'CVn', desc: '旋涡星系' },
+  { m: 'M64', ngc: 'NGC 4826', name: '黑眼星系', type: 'G', ra: 194.2, dec: 21.7, mag: 8.5, size: '10×5', con: 'Com', desc: '旋涡星系' },
+  { m: 'M65', ngc: 'NGC 3623', name: '', type: 'G', ra: 170.1, dec: 13.1, mag: 9.3, size: '10×3', con: 'Leo', desc: '旋涡星系' },
+  { m: 'M66', ngc: 'NGC 3627', name: '', type: 'G', ra: 170.1, dec: 12.9, mag: 8.9, size: '9×4', con: 'Leo', desc: '旋涡星系' },
+  { m: 'M67', ngc: 'NGC 2682', name: '', type: 'OC', ra: 132.8, dec: 11.8, mag: 6.9, size: '30', con: 'Cnc', desc: '古老疏散星团' },
+  { m: 'M68', ngc: 'NGC 4590', name: '', type: 'GC', ra: 189.9, dec: -26.7, mag: 7.8, size: '12', con: 'Hya', desc: '球状星团' },
+  { m: 'M69', ngc: 'NGC 6637', name: '', type: 'GC', ra: 277.8, dec: -32.3, mag: 7.7, size: '10', con: 'Sgr', desc: '球状星团' },
+  { m: 'M70', ngc: 'NGC 6681', name: '', type: 'GC', ra: 280.8, dec: -32.3, mag: 7.9, size: '8', con: 'Sgr', desc: '球状星团' },
+  { m: 'M71', ngc: 'NGC 6838', name: '', type: 'GC', ra: 298.4, dec: 18.8, mag: 8.3, size: '7', con: 'Sge', desc: '球状星团' },
+  { m: 'M72', ngc: 'NGC 6981', name: '', type: 'GC', ra: 313.4, dec: -12.5, mag: 9.3, size: '6', con: 'Aqr', desc: '球状星团' },
+  { m: 'M73', ngc: 'NGC 6994', name: '', type: 'OC', ra: 315.0, dec: -12.6, mag: 9.0, size: '', con: 'Aqr', desc: '星群' },
+  { m: 'M74', ngc: 'NGC 628', name: '', type: 'G', ra: 24.2, dec: 15.8, mag: 9.4, size: '10×10', con: 'Psc', desc: '正面旋涡星系' },
+  { m: 'M75', ngc: 'NGC 6864', name: '', type: 'GC', ra: 301.5, dec: -21.9, mag: 8.6, size: '6', con: 'Sgr', desc: '球状星团' },
+  { m: 'M76', ngc: 'NGC 650', name: '小哑铃星云', type: 'PN', ra: 25.6, dec: 51.6, mag: 10.1, size: '3×2', con: 'Per', desc: '行星状星云' },
+  { m: 'M77', ngc: 'NGC 1068', name: '', type: 'G', ra: 40.7, dec: -0.0, mag: 8.9, size: '7×6', con: 'Cet', desc: '赛弗特星系' },
+  { m: 'M78', ngc: 'NGC 2068', name: '', type: 'N', ra: 86.7, dec: 0.1, mag: 8.3, size: '8×6', con: 'Ori', desc: '反射星云' },
+  { m: 'M79', ngc: 'NGC 1904', name: '', type: 'GC', ra: 81.0, dec: -24.5, mag: 7.7, size: '10', con: 'Lep', desc: '球状星团' },
+  { m: 'M80', ngc: 'NGC 6093', name: '', type: 'GC', ra: 244.3, dec: -22.9, mag: 7.3, size: '10', con: 'Sco', desc: '球状星团' },
+  { m: 'M81', ngc: 'NGC 3031', name: '波德星系', type: 'G', ra: 148.9, dec: 69.1, mag: 6.9, size: '26×14', con: 'UMa', desc: '亮旋涡星系' },
+  { m: 'M82', ngc: 'NGC 3034', name: '雪茄星系', type: 'G', ra: 148.9, dec: 69.7, mag: 8.4, size: '11×5', con: 'UMa', desc: '星爆星系' },
+  { m: 'M83', ngc: 'NGC 5236', name: '南风车星系', type: 'G', ra: 204.3, dec: -29.9, mag: 7.5, size: '13×12', con: 'Hya', desc: '棒旋星系' },
+  { m: 'M84', ngc: 'NGC 4374', name: '', type: 'G', ra: 186.3, dec: 13.0, mag: 9.1, size: '6×6', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M85', ngc: 'NGC 4382', name: '', type: 'G', ra: 186.4, dec: 18.2, mag: 9.1, size: '7×6', con: 'Com', desc: '椭圆星系' },
+  { m: 'M86', ngc: 'NGC 4406', name: '', type: 'G', ra: 186.5, dec: 12.9, mag: 8.9, size: '9×7', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M87', ngc: 'NGC 4486', name: '室女A星系', type: 'G', ra: 187.7, dec: 12.4, mag: 8.6, size: '8×7', con: 'Vir', desc: '椭圆星系，含黑洞喷流' },
+  { m: 'M88', ngc: 'NGC 4501', name: '', type: 'G', ra: 188.0, dec: 14.4, mag: 9.6, size: '7×4', con: 'Com', desc: '旋涡星系' },
+  { m: 'M89', ngc: 'NGC 4552', name: '', type: 'G', ra: 189.4, dec: 12.6, mag: 9.8, size: '5×5', con: 'Vir', desc: '椭圆星系' },
+  { m: 'M90', ngc: 'NGC 4569', name: '', type: 'G', ra: 189.2, dec: 13.2, mag: 9.5, size: '10×5', con: 'Vir', desc: '旋涡星系' },
+  { m: 'M91', ngc: 'NGC 4548', name: '', type: 'G', ra: 188.9, dec: 14.5, mag: 10.2, size: '5×4', con: 'Com', desc: '棒旋星系' },
+  { m: 'M92', ngc: 'NGC 6341', name: '', type: 'GC', ra: 259.3, dec: 43.1, mag: 6.5, size: '14', con: 'Her', desc: '亮球状星团' },
+  { m: 'M93', ngc: 'NGC 2447', name: '', type: 'OC', ra: 116.1, dec: -23.9, mag: 6.2, size: '22', con: 'Pup', desc: '疏散星团' },
+  { m: 'M94', ngc: 'NGC 4736', name: '猫眼星系', type: 'G', ra: 192.7, dec: 41.1, mag: 8.2, size: '11×9', con: 'CVn', desc: '旋涡星系' },
+  { m: 'M95', ngc: 'NGC 3351', name: '', type: 'G', ra: 160.8, dec: 11.7, mag: 9.7, size: '7×5', con: 'Leo', desc: '棒旋星系' },
+  { m: 'M96', ngc: 'NGC 3368', name: '', type: 'G', ra: 161.7, dec: 11.8, mag: 9.3, size: '8×6', con: 'Leo', desc: '旋涡星系' },
+  { m: 'M97', ngc: 'NGC 3587', name: '猫头鹰星云', type: 'PN', ra: 168.7, dec: 55.0, mag: 9.9, size: '3.4×3.3', con: 'UMa', desc: '行星状星云' },
+  { m: 'M98', ngc: 'NGC 4192', name: '', type: 'G', ra: 183.5, dec: 14.9, mag: 10.1, size: '10×3', con: 'Com', desc: '旋涡星系' },
+  { m: 'M99', ngc: 'NGC 4254', name: '', type: 'G', ra: 184.7, dec: 14.4, mag: 9.9, size: '5×5', con: 'Com', desc: '旋涡星系' },
+  { m: 'M100', ngc: 'NGC 4321', name: '', type: 'G', ra: 185.7, dec: 15.8, mag: 9.4, size: '7×6', con: 'Com', desc: '旋涡星系' },
+  { m: 'M101', ngc: 'NGC 5457', name: '风车星系', type: 'G', ra: 210.3, dec: 54.3, mag: 7.9, size: '28×26', con: 'UMa', desc: '正面旋涡星系' },
+  { m: 'M102', ngc: 'NGC 5866', name: '纺锤星系', type: 'G', ra: 226.6, dec: 55.8, mag: 9.9, size: '5×2', con: 'Dra', desc: '透镜星系' },
+  { m: 'M103', ngc: 'NGC 581', name: '', type: 'OC', ra: 23.4, dec: 60.7, mag: 7.4, size: '6', con: 'Cas', desc: '疏散星团' },
+  { m: 'M104', ngc: 'NGC 4594', name: '草帽星系', type: 'G', ra: 189.9, dec: -11.6, mag: 8.0, size: '9×4', con: 'Vir', desc: '侧向旋涡星系' },
+  { m: 'M105', ngc: 'NGC 3379', name: '', type: 'G', ra: 161.9, dec: 12.6, mag: 9.3, size: '5×5', con: 'Leo', desc: '椭圆星系' },
+  { m: 'M106', ngc: 'NGC 4258', name: '', type: 'G', ra: 184.7, dec: 47.3, mag: 8.4, size: '19×8', con: 'CVn', desc: '旋涡星系' },
+  { m: 'M107', ngc: 'NGC 6171', name: '', type: 'GC', ra: 248.1, dec: -13.1, mag: 7.9, size: '10', con: 'Oph', desc: '球状星团' },
+  { m: 'M108', ngc: 'NGC 3556', name: '', type: 'G', ra: 167.9, dec: 55.7, mag: 10.0, size: '8×2', con: 'UMa', desc: '旋涡星系' },
+  { m: 'M109', ngc: 'NGC 3992', name: '', type: 'G', ra: 179.4, dec: 53.4, mag: 9.8, size: '8×5', con: 'UMa', desc: '棒旋星系' },
+  { m: 'M110', ngc: 'NGC 205', name: '', type: 'G', ra: 10.1, dec: 41.7, mag: 8.1, size: '17×10', con: 'And', desc: 'M31 伴星系' }
+];
+
+// ============================================
+// 深空天体管理器
+// ============================================
+
+export class DSOCatalog {
+  constructor() {
+    this.objects = [...MESSIER_OBJECTS];
+    this.loaded = true;
+  }
+
+  /**
+   * 按类型筛选
+   */
+  filterByType(typeCode) {
+    return this.objects.filter(obj => obj.type === typeCode);
+  }
+
+  /**
+   * 按星座筛选
+   */
+  filterByConstellation(constellation) {
+    return this.objects.filter(obj => obj.con === constellation);
+  }
+
+  /**
+   * 按星等筛选
+   */
+  filterByMagnitude(maxMag) {
+    return this.objects.filter(obj => obj.mag <= maxMag);
+  }
+
+  /**
+   * 搜索（按梅西耶编号、NGC编号或名称）
+   */
+  search(query) {
+    const lowerQuery = query.toLowerCase();
+    return this.objects.filter(obj => {
+      if (obj.m && obj.m.toLowerCase() === lowerQuery) return true;
+      if (obj.ngc && obj.ngc.toLowerCase().includes(lowerQuery)) return true;
+      if (obj.name && obj.name.toLowerCase().includes(lowerQuery)) return true;
+      return false;
+    });
+  }
+
+  /**
+   * 获取指定天体
+   */
+  get(messierNumber) {
+    return this.objects.find(obj => obj.m === messierNumber);
+  }
+
+  /**
+   * 按天区筛选
+   */
+  filterByRegion(centerRa, centerDec, radius) {
+    return this.objects.filter(obj => {
+      const dRa = (obj.ra - centerRa) * Math.cos(centerDec * Math.PI / 180);
+      const dDec = obj.dec - centerDec;
+      const dist = Math.sqrt(dRa * dRa + dDec * dDec);
+      return dist <= radius;
+    });
+  }
+
+  /**
+   * 获取所有天体
+   */
+  getAll() {
+    return this.objects;
+  }
+
+  /**
+   * 获取类型统计
+   */
+  getTypeStats() {
+    const stats = {};
+    for (const obj of this.objects) {
+      stats[obj.type] = (stats[obj.type] || 0) + 1;
+    }
+    return stats;
+  }
+}
+
+// 导出单例
+export const dsoCatalog = new DSOCatalog();

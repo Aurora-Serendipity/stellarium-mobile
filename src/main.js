@@ -2,6 +2,8 @@ import * as Astronomy from './astronomy/index.js';
 import {
   StarCatalog,
   generateTestStars,
+  generateExtendedStars,
+  mergeStarCatalogs,
   CONSTELLATIONS,
   CONSTELLATION_LINES,
   dsoCatalog,
@@ -11,9 +13,15 @@ import { SkyRenderer } from './render/renderer.js';
 import { SensorManager } from './sensors/sensors.js';
 import { SearchEngine } from './search/search.js';
 import { SettingsManager } from './settings/settings.js';
+import { SettingsUI } from './settings/settingsUI.js';
+import { MeteorRenderer } from './render/meteor.js';
+import { SatelliteRenderer } from './render/satellite.js';
+import { AtmosphereRenderer } from './render/atmosphere.js';
+import { PlanetDetailsRenderer } from './render/planetDetails.js';
+import { PerformanceManager } from './render/performance.js';
 
 // ============================================
-// 星象馆主应用 - MVP 完整版
+// 星象馆主应用 - 完整版
 // ============================================
 
 class StellariumApp {
@@ -24,9 +32,16 @@ class StellariumApp {
     this.sensors = new SensorManager();
     this.search = null;
     this.settings = new SettingsManager();
+    this.settingsUI = null;
+    this.meteorRenderer = null;
+    this.satelliteRenderer = null;
+    this.atmosphere = null;
+    this.planetDetails = null;
+    this.performance = null;
 
     this.initialized = false;
     this.stars = [];
+    this.allStars = []; // 包含扩展星表
     this.dsoObjects = [];
 
     // 时间
@@ -44,10 +59,11 @@ class StellariumApp {
 
     // UI
     this.ui = {};
+    this.showInfo = true;
   }
 
   async init() {
-    console.log('🌟 Stellarium Mobile MVP 初始化...');
+    console.log('🌟 Stellarium Mobile 完整版初始化...');
 
     this._initUI();
     await this._loadData();
@@ -55,6 +71,9 @@ class StellariumApp {
     // 初始化渲染器
     const container = document.getElementById('canvas-container');
     this.renderer = new SkyRenderer(container);
+
+    // 性能管理
+    this.performance = new PerformanceManager(this.renderer.renderer, this.renderer.camera);
 
     // 创建场景
     this.renderer.createStarField(this.stars);
@@ -64,11 +83,23 @@ class StellariumApp {
     this.renderer.solarSystem.createMarkers();
     this.renderer.galaxy.create();
 
+    // 额外渲染器
+    this.meteorRenderer = new MeteorRenderer(this.renderer.scene);
+    this.satelliteRenderer = new SatelliteRenderer(this.renderer.scene);
+    this.satelliteRenderer.createMarkers();
+    this.atmosphere = new AtmosphereRenderer(this.renderer.scene);
+    this.atmosphere.create();
+    this.planetDetails = new PlanetDetailsRenderer(this.renderer.scene);
+
+    // 设置面板
+    this.settingsUI = new SettingsUI(this);
+    this.settingsUI.create();
+
     // 交互回调
     this.renderer.onObjectClick = (obj) => this._onObjectClick(obj);
 
     // 搜索
-    this.search = new SearchEngine(this.stars, CONSTELLATIONS, this.dsoObjects);
+    this.search = new SearchEngine(this.allStars, CONSTELLATIONS, this.dsoObjects);
 
     // 启动传感器
     if (this.sensorEnabled) {
@@ -82,10 +113,13 @@ class StellariumApp {
     this._updateTimeDisplay();
     this._updateLocationDisplay();
 
+    // 检查流星雨
+    this._checkMeteorShower();
+
     document.getElementById('loading').style.display = 'none';
 
     this.initialized = true;
-    console.log('✅ MVP 初始化完成！');
+    console.log('✅ 完整版初始化完成！');
 
     this._animate();
   }
@@ -101,9 +135,8 @@ class StellariumApp {
     this.ui.searchInput = document.getElementById('search-input');
     this.ui.searchResults = document.getElementById('search-results');
 
-    this.ui.objectCount.textContent = `恒星: ${this.stars.length} | 梅西耶: 110`;
+    this.ui.objectCount.textContent = `恒星: ${this.allStars.length} | 梅西耶: 110`;
 
-    // 搜索事件
     if (this.ui.searchInput) {
       this.ui.searchInput.addEventListener('input', (e) => {
         this._performSearch(e.target.value);
@@ -113,7 +146,10 @@ class StellariumApp {
 
   async _loadData() {
     console.log('📦 加载数据...');
-    this.stars = generateTestStars();
+    const brightStars = generateTestStars();
+    const extendedStars = generateExtendedStars();
+    this.allStars = mergeStarCatalogs(brightStars, extendedStars);
+    this.stars = this.allStars; // 使用完整星表
     console.log(`✅ 恒星: ${this.stars.length} 颗`);
     this.dsoObjects = this.dsoCatalog.getAll();
     console.log(`✅ 深空天体: ${this.dsoObjects.length} 个`);
@@ -134,8 +170,27 @@ class StellariumApp {
       this._updateTimeDisplay();
     }
 
-    // 更新太阳系位置
+    // 更新太阳系
     this._updateSolarSystem();
+
+    // 更新流星雨
+    this.meteorRenderer?.update(delta);
+
+    // 更新卫星
+    const jd = Astronomy.time.getJulianDate(this.currentTime);
+    this.satelliteRenderer?.updatePositions(jd, this.latitude, this.longitude);
+
+    // 更新大气
+    const sunEq = Astronomy.planets.getSunEquatorial(jd);
+    const sunAlt = this._calculateAltitude(sunEq.ra, sunEq.dec);
+    const moonEq = Astronomy.moon.getPosition(jd);
+    const moonAlt = this._calculateAltitude(moonEq.ra, moonEq.dec);
+    this.atmosphere?.update(sunAlt, moonAlt);
+
+    // 性能优化
+    this.performance?.updateFrustum();
+    this.performance?.updateLOD(this.renderer.starMesh, this.renderer.camera.getWorldDirection(new THREE.Vector3()));
+    this.performance?.updateStats();
 
     this.renderer.render();
   }
@@ -146,18 +201,15 @@ class StellariumApp {
 
     const positions = {};
 
-    // 太阳
     const sunEq = Astronomy.planets.getSunEquatorial(jd);
     const sunAlt = this._calculateAltitude(sunEq.ra, sunEq.dec, lst);
     positions.sun = { ...sunEq, altitude: sunAlt };
 
-    // 月球
     const moonEq = Astronomy.moon.getPosition(jd);
     const moonAlt = this._calculateAltitude(moonEq.ra, moonEq.dec, lst);
     const moonPhase = Astronomy.moon.getPhase(jd);
     positions.moon = { ...moonEq, altitude: moonAlt, phase: moonPhase };
 
-    // 行星
     const planets = ['mercury', 'venus', 'mars', 'jupiter', 'saturn'];
     for (const p of planets) {
       const pos = Astronomy.planets.getPlanetPosition(p, jd);
@@ -167,6 +219,9 @@ class StellariumApp {
 
     this.renderer.solarSystem.updatePositions(positions);
     this.renderer.solarSystem.updateMoonPhase(moonPhase);
+
+    // 更新木星卫星
+    this.planetDetails?.updateJupiterMoons(jd);
   }
 
   _calculateAltitude(ra, dec, lst) {
@@ -174,6 +229,14 @@ class StellariumApp {
     const sinAlt = Math.sin(dec * Math.PI / 180) * Math.sin(this.latitude * Math.PI / 180) +
                    Math.cos(dec * Math.PI / 180) * Math.cos(this.latitude * Math.PI / 180) * Math.cos(ha * Math.PI / 180);
     return Math.asin(Math.max(-1, Math.min(1, sinAlt))) * 180 / Math.PI;
+  }
+
+  _checkMeteorShower() {
+    const shower = this.meteorRenderer?.checkActivity(this.currentTime);
+    if (shower) {
+      this.meteorRenderer.start(shower);
+      console.log(`🌠 ${shower.name} 活动中！`);
+    }
   }
 
   _onOrientationChange(orientation) {
@@ -246,6 +309,7 @@ class StellariumApp {
       <div>赤纬: ${star.dec.toFixed(2)}°</div>
       ${star.constellation ? `<div>星座: ${star.constellation}</div>` : ''}
       ${star.bayer ? `<div>拜耳名: ${star.bayer}</div>` : ''}
+      ${star.parallax > 0 ? `<div>距离: ${(1000/star.parallax).toFixed(1)} 光年</div>` : ''}
     `;
     this.ui.objectInfo.classList.add('visible');
     clearTimeout(this._infoTimeout);
@@ -253,10 +317,6 @@ class StellariumApp {
       this.ui.objectInfo.classList.remove('visible');
     }, 5000);
   }
-
-  // ============================================
-  // 搜索功能
-  // ============================================
 
   _performSearch(query) {
     if (!this.ui.searchResults) return;
@@ -280,7 +340,6 @@ class StellariumApp {
         </div>
       `).join('');
 
-      // 添加点击事件
       this.ui.searchResults.querySelectorAll('.search-result').forEach(el => {
         el.addEventListener('click', () => {
           const type = el.dataset.type;
@@ -294,13 +353,8 @@ class StellariumApp {
   }
 
   _goToObject(type, id) {
-    // 隐藏搜索结果
-    if (this.ui.searchResults) {
-      this.ui.searchResults.style.display = 'none';
-    }
-    if (this.ui.searchInput) {
-      this.ui.searchInput.value = '';
-    }
+    if (this.ui.searchResults) this.ui.searchResults.style.display = 'none';
+    if (this.ui.searchInput) this.ui.searchInput.value = '';
 
     let obj = null;
     if (type === 'star') {
@@ -310,12 +364,10 @@ class StellariumApp {
     }
 
     if (obj && this.renderer) {
-      // 将相机对准目标
       const ra = obj.ra;
       const dec = obj.dec;
       this.renderer.setCameraOrientation(ra, 90 - dec, 0);
 
-      // 显示信息
       if (type === 'star') {
         this._showStarInfo(obj);
       } else {
@@ -324,21 +376,15 @@ class StellariumApp {
     }
   }
 
-  // ============================================
-  // UI 更新
-  // ============================================
-
   _updateTimeDisplay() {
     const d = this.currentTime;
     const timeStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const hourStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-
     let speedStr = '';
     if (this.timeSpeed === 0) speedStr = '实时';
     else if (Math.abs(this.timeSpeed) === 3600) speedStr = '1小时/秒';
     else if (Math.abs(this.timeSpeed) === 86400) speedStr = '1天/秒';
     else speedStr = `${this.timeSpeed}秒/秒`;
-
     this.ui.timeDisplay.innerHTML = `${timeStr} ${hourStr} <span style="opacity:0.5">(${speedStr})</span>`;
   }
 
@@ -349,10 +395,7 @@ class StellariumApp {
       `${Math.abs(this.latitude).toFixed(1)}°${latDir} ${Math.abs(this.longitude).toFixed(1)}°${lonDir}`;
   }
 
-  // ============================================
   // 公共控制接口
-  // ============================================
-
   toggleSensor() {
     this.sensorEnabled = !this.sensorEnabled;
     const btn = document.getElementById('btn-sensor');
@@ -390,6 +433,11 @@ class StellariumApp {
     document.getElementById('btn-planets')?.classList.toggle('active', visible);
   }
 
+  toggleSatellites() {
+    const visible = this.satelliteRenderer.toggleVisible();
+    document.getElementById('btn-satellite')?.classList.toggle('active', visible);
+  }
+
   toggleSearch() {
     const panel = document.getElementById('search-panel');
     if (panel) {
@@ -399,6 +447,10 @@ class StellariumApp {
         this.ui.searchInput.focus();
       }
     }
+  }
+
+  toggleSettings() {
+    this.settingsUI?.toggle();
   }
 
   toggleTimeFlow() {

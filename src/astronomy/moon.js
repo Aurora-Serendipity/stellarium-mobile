@@ -9,6 +9,9 @@
 import { DEG2RAD, RAD2DEG, PI2, normalizeAngle } from './math.js';
 import { getJulianCenturies } from './time.js';
 import { eclipticToEquatorial } from './coords.js';
+import { getSunEquatorial } from './planets.js';
+
+const ARCSEC2RAD = Math.PI / (180 * 3600);
 
 /**
  * 计算月球位置（地心黄道坐标）
@@ -101,7 +104,6 @@ export function getMoonEquatorial(jde) {
   const equatorial = eclipticToEquatorial(moon.lon, moon.lat, jde);
   
   // 计算月相
-  const { getSunEquatorial } = await import('./planets.js');
   const sun = getSunEquatorial(jde);
   
   // 日月黄经差

@@ -1,0 +1,22 @@
+{
+  "name": "星象馆 Stellarium Mobile",
+  "short_name": "星象馆",
+  "description": "专业级实时天文观测应用",
+  "start_url": "/stellarium-mobile/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/stellarium-mobile/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/stellarium-mobile/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

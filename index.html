@@ -6,158 +6,347 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
+  <meta name="description" content="专业级移动端星象馆 - 实时星空渲染">
   <title>Stellarium Mobile</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192x192.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
+
+    body {
       background: #000;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       position: fixed;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
+
     #canvas-container {
-      position: fixed;
-      top: 0;
-      left: 0;
       width: 100%;
       height: 100%;
-      z-index: 1;
-    }
-    #ui-layer {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
+    }
+
+    canvas {
+      display: block;
       width: 100%;
       height: 100%;
-      z-index: 10;
-      pointer-events: none;
     }
-    #ui-layer > * { pointer-events: auto; }
+
+    /* 顶部信息栏 */
     #info-panel {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.8);
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      max-width: 220px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      pointer-events: none;
+      z-index: 10;
     }
+
+    #time-display {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    #location-display {
+      font-size: 12px;
+      opacity: 0.6;
+      margin-top: 2px;
+    }
+
+    #object-count {
+      font-size: 11px;
+      opacity: 0.5;
+      margin-top: 2px;
+    }
+
+    /* 右侧控制按钮 */
+    #controls {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .control-btn:active {
+      background: rgba(255,255,255,0.3);
+      transform: scale(0.95);
+    }
+
+    .control-btn.active {
+      background: rgba(100,150,255,0.4);
+      border-color: rgba(100,150,255,0.6);
+    }
+
+    /* 底部时间控制 */
     #time-controls {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 8px;
-      background: rgba(0,0,0,0.7);
-      padding: 8px 16px;
-      border-radius: 24px;
-      backdrop-filter: blur(10px);
+      gap: 12px;
+      z-index: 10;
     }
-    #side-controls {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .btn {
-      background: rgba(255,255,255,0.15);
+
+    .time-btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
       color: #fff;
-      padding: 10px 14px;
-      border-radius: 12px;
       font-size: 13px;
       cursor: pointer;
-      backdrop-filter: blur(10px);
       transition: all 0.2s;
-      min-width: 60px;
-      text-align: center;
+      backdrop-filter: blur(10px);
     }
-    .btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
-    .btn.active { background: rgba(100,150,255,0.4); border-color: rgba(100,150,255,0.6); }
+
+    .time-btn:active {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* 信息弹窗 */
     #object-info {
       position: absolute;
       bottom: 80px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(20px);
       background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
       padding: 16px 20px;
-      border-radius: 16px;
-      font-size: 14px;
-      max-width: 300px;
-      display: none;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.15);
+      min-width: 200px;
+      max-width: 80vw;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 20;
+      backdrop-filter: blur(20px);
     }
-    #object-info.visible { display: block; }
-    .loading {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      z-index: 100;
+
+    #object-info.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #info-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    #info-details {
+      font-size: 13px;
+      line-height: 1.6;
+      opacity: 0.8;
+    }
+
+    #info-details div {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    /* 搜索面板 */
+    #search-panel {
+      position: absolute;
+      top: 60px;
+      left: 16px;
+      right: 16px;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 12px;
+      display: none;
+      z-index: 30;
+      backdrop-filter: blur(20px);
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+
+    #search-input::placeholder {
+      color: rgba(255,255,255,0.4);
+    }
+
+    #search-results {
+      margin-top: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .search-result {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .search-result:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .search-type {
+      font-size: 16px;
+      width: 24px;
       text-align: center;
     }
-    .spinner {
+
+    .search-name {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .search-info {
+      font-size: 12px;
+      opacity: 0.5;
+    }
+
+    .search-no-results {
+      padding: 16px;
+      text-align: center;
+      opacity: 0.5;
+      font-size: 14px;
+    }
+
+    /* 加载界面 */
+    #loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+
+    .loading-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.1);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 12px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      margin-top: 16px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 响应式 */
+    @media (max-width: 400px) {
+      .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .time-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <div>加载星象馆...</div>
+  <div id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在加载星空...</div>
   </div>
 
   <div id="canvas-container"></div>
 
-  <div id="ui-layer">
-    <div id="info-panel">
-      <div style="font-weight:600;margin-bottom:4px;">🌟 Stellarium Mobile</div>
-      <div id="time-display" style="opacity:0.7;font-size:12px;">--</div>
-      <div id="location-display" style="opacity:0.7;font-size:12px;margin-top:2px;">--</div>
-      <div id="object-count" style="opacity:0.7;font-size:12px;margin-top:2px;">--</div>
-    </div>
+  <!-- 顶部信息 -->
+  <div id="info-panel">
+    <div id="time-display">--</div>
+    <div id="location-display">--</div>
+    <div id="object-count">--</div>
+  </div>
 
-    <div id="side-controls">
-      <button class="btn active" id="btn-sensor" onclick="app.toggleSensor()">🧭</button>
-      <button class="btn" id="btn-constellation" onclick="app.toggleConstellations()">⭐</button>
-      <button class="btn" id="btn-dso" onclick="app.toggleDSO()">🌌</button>
-      <button class="btn" id="btn-grid" onclick="app.toggleGrid()">⊕</button>
-    </div>
+  <!-- 搜索面板 -->
+  <div id="search-panel">
+    <input type="text" id="search-input" placeholder="搜索恒星、星座、深空天体..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
 
-    <div id="time-controls">
-      <button class="btn" onclick="app.timeSpeed = -86400">⏪</button>
-      <button class="btn" onclick="app.timeSpeed = -3600">◀</button>
-      <button class="btn" onclick="app.toggleTimeFlow()">⏯</button>
-      <button class="btn" onclick="app.timeSpeed = 3600">▶</button>
-      <button class="btn" onclick="app.timeSpeed = 86400">⏩</button>
-      <button class="btn" onclick="app.resetTime()">⏺</button>
-    </div>
+  <!-- 右侧控制 -->
+  <div id="controls">
+    <button class="control-btn" id="btn-search" onclick="app.toggleSearch()" title="搜索">🔍</button>
+    <button class="control-btn active" id="btn-sensor" onclick="app.toggleSensor()" title="传感器">📱</button>
+    <button class="control-btn active" id="btn-constellation" onclick="app.toggleConstellations()" title="星座">✨</button>
+    <button class="control-btn active" id="btn-planets" onclick="app.togglePlanets()" title="行星">🪐</button>
+    <button class="control-btn active" id="btn-dso" onclick="app.toggleDSO()" title="深空">🌌</button>
+    <button class="control-btn" id="btn-galaxy" onclick="app.toggleGalaxy()" title="银河">🌠</button>
+    <button class="control-btn" id="btn-grid" onclick="app.toggleGrid()" title="网格">📐</button>
+  </div>
 
-    <div id="object-info">
-      <div id="info-name" style="font-weight:600;font-size:16px;margin-bottom:4px;"></div>
-      <div id="info-details" style="opacity:0.8;font-size:13px;line-height:1.5;"></div>
-    </div>
+  <!-- 底部时间控制 -->
+  <div id="time-controls">
+    <button class="time-btn" onclick="app.setTimeSpeed(-86400)" title="快退">⏪</button>
+    <button class="time-btn" onclick="app.toggleTimeFlow()" title="播放/暂停">⏯️</button>
+    <button class="time-btn" onclick="app.resetTime()" title="现在">⏺️</button>
+    <button class="time-btn" onclick="app.setTimeSpeed(3600)" title="快进">⏩</button>
+    <button class="time-btn" onclick="app.setTimeSpeed(86400)" title="快速">⏭️</button>
+  </div>
+
+  <!-- 信息弹窗 -->
+  <div id="object-info">
+    <div id="info-name"></div>
+    <div id="info-details"></div>
   </div>
 
   <script type="module" src="./src/main.js"></script>

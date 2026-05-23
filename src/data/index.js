@@ -1,9 +1,5 @@
-/**
- * 数据管理主入口
- * 整合星表、星座、深空天体数据
- */
-
 export { StarCatalog, STAR_LAYERS, generateTestStars } from './starCatalog.js';
+export { getBrightStars } from './brightStars.js';
 export {
   CONSTELLATIONS,
   CONSTELLATION_LINES,

@@ -1,22 +1,24 @@
-name: Sync and Deploy
+name: Build and Deploy
 
 on:
-  # 定时触发：每小时检查一次本地同步
-  schedule:
-    - cron: '0 * * * *'
-  # 手动触发
-  workflow_dispatch:
   # 推送时触发
   push:
     branches: [main]
+  # 手动触发
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  # 任务1：构建项目并部署到 gh-pages 分支
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,14 +30,19 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          # 如果没有 package-lock.json，使用 npm install
+          if [ ! -f package-lock.json ]; then
+            npm install
+          else
+            npm ci
+          fi
 
       - name: Build
         run: npm run build
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
-        if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

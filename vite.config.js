@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/stellarium-mobile/',
+  base: './',
   build: {
     outDir: 'dist',
     sourcemap: true

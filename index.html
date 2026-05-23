@@ -2,94 +2,164 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Stellarium Mobile - 移动端星象馆</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>Stellarium Mobile</title>
   <link rel="manifest" href="./manifest.json">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
       background: #000;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-    }
-    #info {
+      width: 100%;
+      height: 100%;
       position: fixed;
+      touch-action: none;
+    }
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    #ui-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #ui-layer > * { pointer-events: auto; }
+    #info-panel {
+      position: absolute;
       top: 10px;
       left: 10px;
-      z-index: 100;
-      background: rgba(0,0,0,0.7);
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      max-width: 200px;
+      background: rgba(0,0,0,0.8);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      max-width: 220px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
     }
-    #controls {
-      position: fixed;
+    #time-controls {
+      position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 100;
       display: flex;
-      gap: 10px;
-    }
-    button {
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
+      gap: 8px;
+      background: rgba(0,0,0,0.7);
       padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      cursor: pointer;
+      border-radius: 24px;
+      backdrop-filter: blur(10px);
     }
-    button:active { background: rgba(255,255,255,0.4); }
-    canvas { display: block; }
+    #side-controls {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+      min-width: 60px;
+      text-align: center;
+    }
+    .btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+    .btn.active { background: rgba(100,150,255,0.4); border-color: rgba(100,150,255,0.6); }
+    #object-info {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      max-width: 300px;
+      display: none;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    #object-info.visible { display: block; }
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      z-index: 100;
+      text-align: center;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div id="info">
-    <div>🌟 Stellarium Mobile</div>
-    <div id="status">加载中...</div>
-  </div>
-  <div id="controls">
-    <button onclick="toggleConstellations()">星座</button>
-    <button onclick="toggleDSO()">深空</button>
-    <button onclick="toggleGrid()">网格</button>
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div>加载星象馆...</div>
   </div>
 
-  <!-- Three.js -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
+  <div id="canvas-container"></div>
+
+  <div id="ui-layer">
+    <div id="info-panel">
+      <div style="font-weight:600;margin-bottom:4px;">🌟 Stellarium Mobile</div>
+      <div id="time-display" style="opacity:0.7;font-size:12px;">--</div>
+      <div id="location-display" style="opacity:0.7;font-size:12px;margin-top:2px;">--</div>
+      <div id="object-count" style="opacity:0.7;font-size:12px;margin-top:2px;">--</div>
+    </div>
+
+    <div id="side-controls">
+      <button class="btn active" id="btn-sensor" onclick="app.toggleSensor()">🧭</button>
+      <button class="btn" id="btn-constellation" onclick="app.toggleConstellations()">⭐</button>
+      <button class="btn" id="btn-dso" onclick="app.toggleDSO()">🌌</button>
+      <button class="btn" id="btn-grid" onclick="app.toggleGrid()">⊕</button>
+    </div>
+
+    <div id="time-controls">
+      <button class="btn" onclick="app.timeSpeed = -86400">⏪</button>
+      <button class="btn" onclick="app.timeSpeed = -3600">◀</button>
+      <button class="btn" onclick="app.toggleTimeFlow()">⏯</button>
+      <button class="btn" onclick="app.timeSpeed = 3600">▶</button>
+      <button class="btn" onclick="app.timeSpeed = 86400">⏩</button>
+      <button class="btn" onclick="app.resetTime()">⏺</button>
+    </div>
+
+    <div id="object-info">
+      <div id="info-name" style="font-weight:600;font-size:16px;margin-bottom:4px;"></div>
+      <div id="info-details" style="opacity:0.8;font-size:13px;line-height:1.5;"></div>
+    </div>
+  </div>
 
   <script type="module" src="./src/main.js"></script>
-
-  <script>
-    // 简单的 UI 控制
-    function toggleConstellations() {
-      console.log('切换星座显示');
-    }
-    function toggleDSO() {
-      console.log('切换深空天体显示');
-    }
-    function toggleGrid() {
-      console.log('切换坐标网格');
-    }
-
-    // 更新状态显示
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const status = document.getElementById('status');
-        if (status) status.textContent = '已就绪 - 查看控制台';
-      }, 2000);
-    });
-  </script>
 </body>
 </html>

@@ -27,18 +27,18 @@ case "${1:-status}" in
       msg="update: $(date '+%Y-%m-%d %H:%M:%S')"
     fi
     git commit -m "$msg" || echo "没有需要提交的更改"
-    git push origin main && echo -e "${GREEN}✅ 推送成功${NC}" || echo -e "${RED}❌ 推送失败${NC}"
+    git push origin master && echo -e "${GREEN}✅ 推送成功${NC}" || echo -e "${RED}❌ 推送失败${NC}"
     ;;
     
   pull)
     echo -e "${YELLOW}⬇️  拉取远程更新...${NC}"
     git fetch origin
     LOCAL=$(git rev-parse HEAD)
-    REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "none")
+    REMOTE=$(git rev-parse origin/master 2>/dev/null || echo "none")
     
     if [ "$LOCAL" != "$REMOTE" ]; then
       echo "发现远程更新，正在合并..."
-      git pull origin main --rebase && echo -e "${GREEN}✅ 同步成功${NC}" || echo -e "${RED}❌ 同步失败，请手动解决冲突${NC}"
+      git pull origin master --rebase && echo -e "${GREEN}✅ 同步成功${NC}" || echo -e "${RED}❌ 同步失败，请手动解决冲突${NC}"
     else
       echo -e "${GREEN}✅ 本地已是最新${NC}"
     fi
@@ -53,7 +53,7 @@ case "${1:-status}" in
     # 检查远程更新
     git fetch origin 2>/dev/null
     LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "none")
-    REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "none")
+    REMOTE=$(git rev-parse origin/master 2>/dev/null || echo "none")
     
     if [ "$LOCAL" != "$REMOTE" ]; then
       echo -e "${YELLOW}⚠️  远程有更新，运行 './sync.sh pull' 同步${NC}"

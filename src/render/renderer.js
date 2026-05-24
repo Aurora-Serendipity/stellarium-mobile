@@ -132,6 +132,7 @@ export class SkyRenderer {
       },
       vertexShader: `
         attribute float size;
+        attribute vec3 color;
         attribute vec2 starData;
         varying vec3 vColor;
         varying float vMag;
@@ -281,10 +282,10 @@ export class SkyRenderer {
       opacity: 0.3
     });
 
-    // 赤纬线
+    // 赤纬线 (使用 LineLoop 封闭圆形)
     for (let dec = -80; dec <= 80; dec += 20) {
       const points = [];
-      for (let ra = 0; ra <= 360; ra += 5) {
+      for (let ra = 0; ra < 360; ra += 5) {
         const r = ra * DEG2RAD;
         const d = dec * DEG2RAD;
         points.push(new THREE.Vector3(
@@ -294,7 +295,7 @@ export class SkyRenderer {
         ));
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      group.add(new THREE.Line(geometry, material));
+      group.add(new THREE.LineLoop(geometry, material));
     }
 
     // 赤经线

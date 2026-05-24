@@ -3,7 +3,7 @@
  * LOD、视锥剔除、动态加载
  */
 
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export class PerformanceManager {
   constructor(renderer, camera) {
@@ -18,7 +18,7 @@ export class PerformanceManager {
       frameTime: 0,
       drawCalls: 0,
       triangles: 0,
-      visibleStars: 0
+      visibleStars: 0,
     };
 
     this.lastTime = performance.now();
@@ -29,7 +29,7 @@ export class PerformanceManager {
     this.lodLevels = {
       near: { distance: 0.3, starCount: 1000 },
       mid: { distance: 0.6, starCount: 500 },
-      far: { distance: 1.0, starCount: 200 }
+      far: { distance: 1.0, starCount: 200 },
     };
 
     // 动态加载
@@ -43,7 +43,7 @@ export class PerformanceManager {
   updateFrustum() {
     this.projScreenMatrix.multiplyMatrices(
       this.camera.projectionMatrix,
-      this.camera.matrixWorldInverse
+      this.camera.matrixWorldInverse,
     );
     this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
   }
@@ -73,6 +73,7 @@ export class PerformanceManager {
     }
 
     let visibleCount = 0;
+    const cameraPos = this.camera.position;
 
     for (let i = 0; i < sizes.length; i++) {
       const x = positions[i * 3];
@@ -80,7 +81,7 @@ export class PerformanceManager {
       const z = positions[i * 3 + 2];
 
       const pos = new THREE.Vector3(x, y, z);
-      const distance = pos.distanceTo(cameraDirection);
+      const distance = pos.distanceTo(cameraPos);
       const inView = this.isInView(pos, 0.01);
 
       if (inView) {
@@ -102,17 +103,23 @@ export class PerformanceManager {
    */
   getVisibleChunks(cameraDirection, fov) {
     const chunks = [];
-    const ra = Math.atan2(cameraDirection.z, cameraDirection.x) * 180 / Math.PI;
-    const dec = Math.asin(Math.max(-1, Math.min(1, cameraDirection.y))) * 180 / Math.PI;
+    const ra =
+      (Math.atan2(cameraDirection.z, cameraDirection.x) * 180) / Math.PI;
+    const dec =
+      (Math.asin(Math.max(-1, Math.min(1, cameraDirection.y))) * 180) / Math.PI;
 
     // 计算视野覆盖的区块
-    const fovDegrees = fov * 180 / Math.PI;
+    const fovDegrees = (fov * 180) / Math.PI;
     const chunkRange = Math.ceil(fovDegrees / this.chunkSize) + 1;
 
     for (let dRa = -chunkRange; dRa <= chunkRange; dRa++) {
       for (let dDec = -chunkRange; dDec <= chunkRange; dDec++) {
-        const chunkRa = Math.floor((ra + dRa * this.chunkSize) / this.chunkSize) * this.chunkSize;
-        const chunkDec = Math.floor((dec + dDec * this.chunkSize) / this.chunkSize) * this.chunkSize;
+        const chunkRa =
+          Math.floor((ra + dRa * this.chunkSize) / this.chunkSize) *
+          this.chunkSize;
+        const chunkDec =
+          Math.floor((dec + dDec * this.chunkSize) / this.chunkSize) *
+          this.chunkSize;
         const chunkKey = `${chunkRa},${chunkDec}`;
 
         if (!this.loadedChunks.has(chunkKey)) {
@@ -140,7 +147,9 @@ export class PerformanceManager {
     this.fpsUpdateTime += delta;
 
     if (this.fpsUpdateTime >= 1000) {
-      this.stats.fps = Math.round(this.frameCount * 1000 / this.fpsUpdateTime);
+      this.stats.fps = Math.round(
+        (this.frameCount * 1000) / this.fpsUpdateTime,
+      );
       this.stats.frameTime = Math.round(delta);
       this.frameCount = 0;
       this.fpsUpdateTime = 0;
@@ -158,7 +167,7 @@ export class PerformanceManager {
   getReport() {
     return {
       ...this.stats,
-      loadedChunks: this.loadedChunks.size
+      loadedChunks: this.loadedChunks.size,
     };
   }
 
@@ -168,12 +177,12 @@ export class PerformanceManager {
   adaptQuality() {
     if (this.stats.fps < 30) {
       // 降低质量
-      return 'low';
+      return "low";
     } else if (this.stats.fps > 55) {
       // 提高质量
-      return 'high';
+      return "high";
     }
-    return 'medium';
+    return "medium";
   }
 
   /**

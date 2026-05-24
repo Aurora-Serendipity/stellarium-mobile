@@ -3,7 +3,7 @@
  * 方向追踪 + 地理定位 + 磁偏角校正
  */
 
-import { DEG2RAD, RAD2DEG } from '../astronomy/math.js';
+import { DEG2RAD, RAD2DEG } from "../astronomy/math.js";
 
 export class SensorManager {
   constructor() {
@@ -12,18 +12,18 @@ export class SensorManager {
 
     // 传感器数据
     this.orientation = {
-      alpha: 0,    // 指南针方向 (0-360)
-      beta: 0,     // 前后倾斜 (-180-180)
-      gamma: 0,    // 左右倾斜 (-90-90)
-      absolute: false
+      alpha: 0, // 指南针方向 (0-360)
+      beta: 0, // 前后倾斜 (-180-180)
+      gamma: 0, // 左右倾斜 (-90-90)
+      absolute: false,
     };
 
     // 地理位置
     this.location = {
-      latitude: 39.9,   // 默认北京
+      latitude: 39.9, // 默认北京
       longitude: 116.4,
       altitude: 0,
-      accuracy: null
+      accuracy: null,
     };
 
     // 磁偏角
@@ -47,8 +47,10 @@ export class SensorManager {
 
   _checkAvailability() {
     // iOS 13+ 需要请求权限
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
       this.available = true;
       this.permissionRequired = true;
     } else if (window.DeviceOrientationEvent) {
@@ -57,7 +59,7 @@ export class SensorManager {
     }
 
     // 检查 AbsoluteOrientationSensor (现代 API)
-    if ('AbsoluteOrientationSensor' in window) {
+    if ("AbsoluteOrientationSensor" in window) {
       this.modernAPI = true;
     }
   }
@@ -67,9 +69,9 @@ export class SensorManager {
 
     try {
       const response = await DeviceOrientationEvent.requestPermission();
-      return response === 'granted';
+      return response === "granted";
     } catch (e) {
-      console.error('传感器权限请求失败:', e);
+      console.error("传感器权限请求失败:", e);
       return false;
     }
   }
@@ -85,7 +87,7 @@ export class SensorManager {
     if (this.permissionRequired) {
       const granted = await this.requestPermission();
       if (!granted) {
-        console.warn('传感器权限被拒绝');
+        console.warn("传感器权限被拒绝");
         return false;
       }
     }
@@ -101,7 +103,7 @@ export class SensorManager {
     }
 
     this.enabled = true;
-    console.log('🧭 传感器已启动');
+    console.log("🧭 传感器已启动");
     return true;
   }
 
@@ -109,15 +111,18 @@ export class SensorManager {
     this.enabled = false;
 
     if (this._orientationHandler) {
-      window.removeEventListener('deviceorientationabsolute', this._orientationHandler);
-      window.removeEventListener('deviceorientation', this._orientationHandler);
+      window.removeEventListener(
+        "deviceorientationabsolute",
+        this._orientationHandler,
+      );
+      window.removeEventListener("deviceorientation", this._orientationHandler);
     }
 
     if (this._geoWatchId !== null) {
       navigator.geolocation.clearWatch(this._geoWatchId);
     }
 
-    console.log('🧭 传感器已停止');
+    console.log("🧭 传感器已停止");
   }
 
   // ============================================
@@ -128,7 +133,7 @@ export class SensorManager {
     try {
       const sensor = new AbsoluteOrientationSensor({ frequency: 60 });
 
-      sensor.addEventListener('reading', () => {
+      sensor.addEventListener("reading", () => {
         const q = sensor.quaternion;
         // 四元数转欧拉角
         const euler = this._quaternionToEuler(q);
@@ -138,7 +143,7 @@ export class SensorManager {
       sensor.start();
       this._modernSensor = sensor;
     } catch (e) {
-      console.warn('现代传感器启动失败，回退到传统 API');
+      console.warn("现代传感器启动失败，回退到传统 API");
       this._startLegacySensor();
     }
   }
@@ -152,9 +157,8 @@ export class SensorManager {
     const roll = Math.atan2(sinr_cosp, cosr_cosp);
 
     const sinp = 2 * (w * y - z * x);
-    const pitch = Math.abs(sinp) >= 1
-      ? Math.copySign(Math.PI / 2, sinp)
-      : Math.asin(sinp);
+    const pitch =
+      Math.abs(sinp) >= 1 ? Math.copySign(Math.PI / 2, sinp) : Math.asin(sinp);
 
     const siny_cosp = 2 * (w * z + x * y);
     const cosy_cosp = 1 - 2 * (y * y + z * z);
@@ -163,7 +167,7 @@ export class SensorManager {
     return {
       alpha: yaw * RAD2DEG,
       beta: pitch * RAD2DEG,
-      gamma: roll * RAD2DEG
+      gamma: roll * RAD2DEG,
     };
   }
 
@@ -173,17 +177,20 @@ export class SensorManager {
 
   _startLegacySensor() {
     this._orientationHandler = (event) => {
-      const alpha = event.alpha || 0;   // 指南针
-      const beta = event.beta || 0;     // 前后倾
-      const gamma = event.gamma || 0;   // 左右倾
+      const alpha = event.alpha || 0; // 指南针
+      const beta = event.beta || 0; // 前后倾
+      const gamma = event.gamma || 0; // 左右倾
       const absolute = event.absolute || false;
 
       this._updateOrientation({ alpha, beta, gamma, absolute });
     };
 
     // 优先使用 absolute 事件
-    window.addEventListener('deviceorientationabsolute', this._orientationHandler);
-    window.addEventListener('deviceorientation', this._orientationHandler);
+    window.addEventListener(
+      "deviceorientationabsolute",
+      this._orientationHandler,
+    );
+    window.addEventListener("deviceorientation", this._orientationHandler);
   }
 
   _updateOrientation(data) {
@@ -218,22 +225,22 @@ export class SensorManager {
 
   _startGeolocation() {
     if (!navigator.geolocation) {
-      console.warn('地理定位不可用');
+      console.warn("地理定位不可用");
       return;
     }
 
     // 获取初始位置
     navigator.geolocation.getCurrentPosition(
       (pos) => this._updateLocation(pos),
-      (err) => console.warn('定位失败:', err),
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => console.warn("定位失败:", err),
+      { enableHighAccuracy: true, timeout: 10000 },
     );
 
     // 持续监听
     this._geoWatchId = navigator.geolocation.watchPosition(
       (pos) => this._updateLocation(pos),
-      (err) => console.warn('定位更新失败:', err),
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
+      (err) => console.warn("定位更新失败:", err),
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 },
     );
   }
 
@@ -280,11 +287,18 @@ export class SensorManager {
   // ============================================
 
   getOrientation() {
+    // 限制beta范围避免极端情况
+    const beta = Math.max(-180, Math.min(180, this.orientation.beta));
+    // 计算高度角：当设备垂直向上时beta=-90，altitude=90；水平时beta=0，altitude=0
+    let altitude = 90 - Math.abs(beta);
+    // 确保高度角在有效范围内
+    altitude = Math.max(0, Math.min(90, altitude));
+
     return {
       azimuth: this.orientation.alpha + this.magneticDeclination,
-      altitude: 90 - Math.abs(this.orientation.beta),
+      altitude: altitude,
       roll: this.orientation.gamma,
-      raw: this.orientation
+      raw: this.orientation,
     };
   }
 
@@ -310,7 +324,7 @@ export class SensorManager {
     return {
       azimuth: o.azimuth,
       altitude: o.altitude,
-      roll: o.roll
+      roll: o.roll,
     };
   }
 }

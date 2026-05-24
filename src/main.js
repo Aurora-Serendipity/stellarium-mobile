@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import * as Astronomy from "./astronomy/index.js";
 import {
   StarCatalog,
@@ -141,13 +142,20 @@ class StellariumApp {
     this.ui.searchInput = document.getElementById("search-input");
     this.ui.searchResults = document.getElementById("search-results");
 
-    this.ui.objectCount.textContent = `恒星: ${this.allStars.length} | 梅西耶: 110`;
+    // 数据加载完成后再更新计数显示
+    this.ui.objectCount.textContent = "正在加载星表...";
 
     if (this.ui.searchInput) {
       this.ui.searchInput.addEventListener("input", (e) => {
         this._performSearch(e.target.value);
       });
     }
+  }
+
+  _updateObjectCount() {
+    const starCount = this.allStars?.length || 0;
+    const dsoCount = this.dsoObjects?.length || 0;
+    this.ui.objectCount.textContent = `恒星: ${starCount} | 深空天体: ${dsoCount}`;
   }
 
   async _loadData() {
@@ -159,6 +167,9 @@ class StellariumApp {
     console.log(`✅ 恒星: ${this.stars.length} 颗`);
     this.dsoObjects = this.dsoCatalog.getAll();
     console.log(`✅ 深空天体: ${this.dsoObjects.length} 个`);
+
+    // 数据加载完成后更新UI计数
+    this._updateObjectCount();
   }
 
   _animate() {
@@ -188,6 +199,7 @@ class StellariumApp {
 
     // 更新大气
     const sunEq = Astronomy.getSunEquatorial(jd);
+    const lst = Astronomy.getLocalSiderealTime(jd, this.longitude);
     const sunAlt = this._calculateAltitude(sunEq.ra, sunEq.dec, lst);
     const moonEq = Astronomy.getMoonEquatorial(jd);
     const moonAlt = this._calculateAltitude(moonEq.ra, moonEq.dec, lst);
@@ -357,7 +369,7 @@ class StellariumApp {
       this.ui.searchResults.innerHTML = results
         .map(
           (r) => `
-        <div class="search-result" data-type="${r.type}" data-id="${r.data.id || r.data.m || ""}">
+        <div class="search-result" data-type="${r.type}" data-id="${r.data.id || r.data.m || r.name || ""}">
           <span class="search-type" data-type="${r.type}">${r.type === "star" ? "★" : r.type === "dso" ? "◎" : "◈"}</span>
           <span class="search-name">${r.name}</span>
           <span class="search-info">${r.data.constellation || r.data.con || ""}</span>
@@ -410,6 +422,8 @@ class StellariumApp {
     if (this.timeSpeed === 0) speedStr = "实时";
     else if (Math.abs(this.timeSpeed) === 3600) speedStr = "1小时/秒";
     else if (Math.abs(this.timeSpeed) === 86400) speedStr = "1天/秒";
+    else if (Math.abs(this.timeSpeed) === 604800) speedStr = "1周/秒";
+    else if (Math.abs(this.timeSpeed) === 2592000) speedStr = "1月/秒";
     else speedStr = `${this.timeSpeed}秒/秒`;
     this.ui.timeDisplay.innerHTML = `${timeStr} ${hourStr} <span style="opacity:0.5">(${speedStr})</span>`;
   }

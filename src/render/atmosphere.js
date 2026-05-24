@@ -3,7 +3,7 @@
  * 包括地平线光晕、光污染、晨昏蒙影
  */
 
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export class AtmosphereRenderer {
   constructor(scene) {
@@ -26,11 +26,19 @@ export class AtmosphereRenderer {
    * 地平线光晕
    */
   _createHorizonGlow() {
-    const geometry = new THREE.SphereGeometry(1.2, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.3);
+    const geometry = new THREE.SphereGeometry(
+      1.2,
+      32,
+      32,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.3,
+    );
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uSunAltitude: { value: 0 },
-        uMoonAltitude: { value: 0 }
+        uMoonAltitude: { value: 0 },
       },
       vertexShader: `
         varying vec3 vWorldPosition;
@@ -81,11 +89,11 @@ export class AtmosphereRenderer {
       transparent: true,
       depthWrite: false,
       side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = 'horizonGlow';
+    mesh.name = "horizonGlow";
     this.scene.add(mesh);
     this.meshes.push(mesh);
   }
@@ -97,7 +105,7 @@ export class AtmosphereRenderer {
     const geometry = new THREE.SphereGeometry(1.3, 32, 32);
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        uIntensity: { value: 0.3 }
+        uIntensity: { value: 0.3 },
       },
       vertexShader: `
         varying float vHeight;
@@ -117,11 +125,11 @@ export class AtmosphereRenderer {
       `,
       transparent: true,
       depthWrite: false,
-      side: THREE.BackSide
+      side: THREE.BackSide,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = 'zenithDarkening';
+    mesh.name = "zenithDarkening";
     this.scene.add(mesh);
     this.meshes.push(mesh);
   }
@@ -130,11 +138,19 @@ export class AtmosphereRenderer {
    * 光污染效果
    */
   _createLightPollution() {
-    const geometry = new THREE.SphereGeometry(1.1, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
+    const geometry = new THREE.SphereGeometry(
+      1.1,
+      32,
+      32,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.5,
+    );
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uLevel: { value: 0.0 },
-        uColor: { value: new THREE.Color(0xffaa66) }
+        uColor: { value: new THREE.Color(0xffaa66) },
       },
       vertexShader: `
         varying float vHeight;
@@ -161,11 +177,11 @@ export class AtmosphereRenderer {
       transparent: true,
       depthWrite: false,
       side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = 'lightPollution';
+    mesh.name = "lightPollution";
     this.scene.add(mesh);
     this.meshes.push(mesh);
   }
@@ -175,9 +191,17 @@ export class AtmosphereRenderer {
    */
   update(sunAltitude, moonAltitude) {
     for (const mesh of this.meshes) {
-      if (mesh.name === 'horizonGlow') {
+      if (mesh.name === "horizonGlow") {
         mesh.material.uniforms.uSunAltitude.value = sunAltitude;
         mesh.material.uniforms.uMoonAltitude.value = moonAltitude;
+      }
+      // 可以在这里添加其他mesh的更新逻辑
+      // 例如根据太阳高度调整天顶变暗强度
+      if (mesh.name === "zenithDarkening") {
+        // 太阳高度越高，天顶变暗越强（模拟白天）
+        const intensity =
+          sunAltitude > 0 ? 0.1 + (sunAltitude / 90) * 0.5 : 0.3;
+        mesh.material.uniforms.uIntensity.value = intensity;
       }
     }
   }
@@ -189,7 +213,7 @@ export class AtmosphereRenderer {
     this.lightPollutionLevel = Math.max(0, Math.min(9, level));
 
     for (const mesh of this.meshes) {
-      if (mesh.name === 'lightPollution') {
+      if (mesh.name === "lightPollution") {
         mesh.material.uniforms.uLevel.value = this.lightPollutionLevel / 9.0;
       }
     }

@@ -3,10 +3,10 @@
  * 整合恒星、星座、深空、太阳系、银河
  */
 
-import * as THREE from 'three';
-import { DEG2RAD, RAD2DEG } from '../astronomy/math.js';
-import { SolarSystemRenderer } from './solarSystem.js';
-import { GalaxyRenderer } from './galaxy.js';
+import * as THREE from "three";
+import { DEG2RAD, RAD2DEG } from "../astronomy/math.js";
+import { SolarSystemRenderer } from "./solarSystem.js";
+import { GalaxyRenderer } from "./galaxy.js";
 
 // 色指数到色温映射
 const CI_TO_TEMP = [
@@ -19,17 +19,18 @@ const CI_TO_TEMP = [
   { ci: 0.8, temp: 5200, color: new THREE.Color(1.0, 0.9, 0.8) },
   { ci: 1.0, temp: 4500, color: new THREE.Color(1.0, 0.85, 0.7) },
   { ci: 1.4, temp: 3700, color: new THREE.Color(1.0, 0.75, 0.6) },
-  { ci: 2.0, temp: 3100, color: new THREE.Color(1.0, 0.65, 0.5) }
+  { ci: 2.0, temp: 3100, color: new THREE.Color(1.0, 0.65, 0.5) },
 ];
 
 function ciToColor(ci) {
   for (let i = 0; i < CI_TO_TEMP.length - 1; i++) {
-    if (ci <= CI_TO_TEMP[i+1].ci) {
-      const t = (ci - CI_TO_TEMP[i].ci) / (CI_TO_TEMP[i+1].ci - CI_TO_TEMP[i].ci);
-      return CI_TO_TEMP[i].color.clone().lerp(CI_TO_TEMP[i+1].color, t);
+    if (ci <= CI_TO_TEMP[i + 1].ci) {
+      const t =
+        (ci - CI_TO_TEMP[i].ci) / (CI_TO_TEMP[i + 1].ci - CI_TO_TEMP[i].ci);
+      return CI_TO_TEMP[i].color.clone().lerp(CI_TO_TEMP[i + 1].color, t);
     }
   }
-  return CI_TO_TEMP[CI_TO_TEMP.length-1].color.clone();
+  return CI_TO_TEMP[CI_TO_TEMP.length - 1].color.clone();
 }
 
 export class SkyRenderer {
@@ -43,7 +44,12 @@ export class SkyRenderer {
     this.scene.background = new THREE.Color(0x000000);
 
     // 相机
-    this.camera = new THREE.PerspectiveCamera(60, this.width / this.height, 0.001, 100);
+    this.camera = new THREE.PerspectiveCamera(
+      60,
+      this.width / this.height,
+      0.001,
+      100,
+    );
     this.camera.position.set(0, 0, 0);
 
     // 渲染器
@@ -55,6 +61,7 @@ export class SkyRenderer {
 
     // 相机控制
     this.cameraTarget = new THREE.Vector3(0, 0, -1);
+    this.camera.lookAt(this.cameraTarget); // 初始化相机方向
     this.azimuth = 0;
     this.altitude = 0;
     this.isDragging = false;
@@ -67,7 +74,7 @@ export class SkyRenderer {
       dso: true,
       grid: false,
       galaxy: true,
-      planets: true
+      planets: true,
     };
 
     // 交互
@@ -115,20 +122,21 @@ export class SkyRenderer {
       colors[i * 3 + 2] = color.b;
 
       const mag = star.magnitude || 5;
-      sizes[i] = Math.max(0.003, 0.012 * Math.pow(10, -0.2 * mag));
+      // 增大基础尺寸让恒星更明显
+      sizes[i] = Math.max(0.006, 0.025 * Math.pow(10, -0.2 * mag));
 
       starData[i * 2] = mag;
       starData[i * 2 + 1] = star.id || i;
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geometry.setAttribute('starData', new THREE.BufferAttribute(starData, 2));
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute("starData", new THREE.BufferAttribute(starData, 2));
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        uPixelRatio: { value: this.renderer.getPixelRatio() }
+        uPixelRatio: { value: this.renderer.getPixelRatio() },
       },
       vertexShader: `
         attribute float size;
@@ -147,6 +155,7 @@ export class SkyRenderer {
         }
       `,
       fragmentShader: `
+        precision highp float;
         varying vec3 vColor;
         varying float vMag;
 
@@ -163,17 +172,20 @@ export class SkyRenderer {
             alpha += glow * 0.3 * (2.0 - vMag);
           }
 
+          // 确保低亮度恒星可见 (min brightness)
+          alpha = max(alpha, 0.15);
+
           gl_FragColor = vec4(vColor, alpha);
         }
       `,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      vertexColors: true
+      vertexColors: true,
     });
 
     this.starMesh = new THREE.Points(geometry, material);
-    this.starMesh.name = 'stars';
+    this.starMesh.name = "stars";
     this.scene.add(this.starMesh);
   }
 
@@ -183,13 +195,13 @@ export class SkyRenderer {
 
   createConstellationLines(lines) {
     const group = new THREE.Group();
-    group.name = 'constellations';
+    group.name = "constellations";
 
     const material = new THREE.LineBasicMaterial({
       color: 0x4466aa,
       transparent: true,
       opacity: 0.4,
-      depthWrite: false
+      depthWrite: false,
     });
 
     for (const line of lines) {
@@ -197,11 +209,13 @@ export class SkyRenderer {
       for (const coord of line.coords) {
         const ra = coord.ra * DEG2RAD;
         const dec = coord.dec * DEG2RAD;
-        points.push(new THREE.Vector3(
-          Math.cos(dec) * Math.cos(ra),
-          Math.sin(dec),
-          Math.cos(dec) * Math.sin(ra)
-        ));
+        points.push(
+          new THREE.Vector3(
+            Math.cos(dec) * Math.cos(ra),
+            Math.sin(dec),
+            Math.cos(dec) * Math.sin(ra),
+          ),
+        );
       }
 
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -219,7 +233,7 @@ export class SkyRenderer {
 
   createDSOMarkers(dsoObjects) {
     const group = new THREE.Group();
-    group.name = 'dso';
+    group.name = "dso";
 
     for (const obj of dsoObjects) {
       const ra = obj.ra * DEG2RAD;
@@ -227,25 +241,27 @@ export class SkyRenderer {
       const pos = new THREE.Vector3(
         Math.cos(dec) * Math.cos(ra),
         Math.sin(dec),
-        Math.cos(dec) * Math.sin(ra)
+        Math.cos(dec) * Math.sin(ra),
       );
 
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = 64;
       canvas.height = 64;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
 
-      ctx.strokeStyle = 'rgba(100, 200, 100, 0.8)';
+      ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(32, 32, 14, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(100, 200, 100, 0.4)';
+      ctx.strokeStyle = "rgba(100, 200, 100, 0.4)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(32, 8); ctx.lineTo(32, 56);
-      ctx.moveTo(8, 32); ctx.lineTo(56, 32);
+      ctx.moveTo(32, 8);
+      ctx.lineTo(32, 56);
+      ctx.moveTo(8, 32);
+      ctx.lineTo(56, 32);
       ctx.stroke();
 
       const texture = new THREE.CanvasTexture(canvas);
@@ -253,13 +269,13 @@ export class SkyRenderer {
         map: texture,
         transparent: true,
         opacity: 0.7,
-        depthWrite: false
+        depthWrite: false,
       });
 
       const sprite = new THREE.Sprite(material);
       sprite.position.copy(pos);
       sprite.scale.set(0.03, 0.03, 1);
-      sprite.userData = { type: 'dso', data: obj };
+      sprite.userData = { type: "dso", data: obj };
 
       group.add(sprite);
     }
@@ -274,12 +290,12 @@ export class SkyRenderer {
 
   createCoordGrid() {
     const group = new THREE.Group();
-    group.name = 'grid';
+    group.name = "grid";
 
     const material = new THREE.LineBasicMaterial({
       color: 0x333333,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.3,
     });
 
     // 赤纬线 (使用 LineLoop 封闭圆形)
@@ -288,11 +304,13 @@ export class SkyRenderer {
       for (let ra = 0; ra < 360; ra += 5) {
         const r = ra * DEG2RAD;
         const d = dec * DEG2RAD;
-        points.push(new THREE.Vector3(
-          Math.cos(d) * Math.cos(r),
-          Math.sin(d),
-          Math.cos(d) * Math.sin(r)
-        ));
+        points.push(
+          new THREE.Vector3(
+            Math.cos(d) * Math.cos(r),
+            Math.sin(d),
+            Math.cos(d) * Math.sin(r),
+          ),
+        );
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       group.add(new THREE.LineLoop(geometry, material));
@@ -304,11 +322,13 @@ export class SkyRenderer {
       for (let dec = -90; dec <= 90; dec += 5) {
         const r = ra * DEG2RAD;
         const d = dec * DEG2RAD;
-        points.push(new THREE.Vector3(
-          Math.cos(d) * Math.cos(r),
-          Math.sin(d),
-          Math.cos(d) * Math.sin(r)
-        ));
+        points.push(
+          new THREE.Vector3(
+            Math.cos(d) * Math.cos(r),
+            Math.sin(d),
+            Math.cos(d) * Math.sin(r),
+          ),
+        );
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       group.add(new THREE.Line(geometry, material));
@@ -331,11 +351,7 @@ export class SkyRenderer {
     const cosAz = Math.cos(this.azimuth);
     const sinAz = Math.sin(this.azimuth);
 
-    this.cameraTarget.set(
-      cosAlt * sinAz,
-      sinAlt,
-      -cosAlt * cosAz
-    );
+    this.cameraTarget.set(cosAlt * sinAz, sinAlt, -cosAlt * cosAz);
 
     this.camera.lookAt(this.cameraTarget);
   }
@@ -347,52 +363,60 @@ export class SkyRenderer {
   _setupInteraction() {
     const canvas = this.renderer.domElement;
 
-    canvas.addEventListener('mousedown', (e) => {
+    canvas.addEventListener("mousedown", (e) => {
       this.isDragging = true;
       this.lastMouse = { x: e.clientX, y: e.clientY };
     });
 
-    canvas.addEventListener('mousemove', (e) => {
+    canvas.addEventListener("mousemove", (e) => {
       if (this.isDragging) {
-        const dx = (e.clientX - this.lastMouse.x) / this.width * Math.PI;
-        const dy = (e.clientY - this.lastMouse.y) / this.height * Math.PI;
+        const dx = ((e.clientX - this.lastMouse.x) / this.width) * Math.PI;
+        const dy = ((e.clientY - this.lastMouse.y) / this.height) * Math.PI;
 
         this.azimuth += dx;
-        this.altitude = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.altitude - dy));
+        this.altitude = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2, this.altitude - dy),
+        );
 
         this.setCameraOrientation(
           this.azimuth * RAD2DEG,
           this.altitude * RAD2DEG,
-          0
+          0,
         );
 
         this.lastMouse = { x: e.clientX, y: e.clientY };
       }
     });
 
-    canvas.addEventListener('mouseup', () => this.isDragging = false);
-    canvas.addEventListener('mouseleave', () => this.isDragging = false);
+    canvas.addEventListener("mouseup", () => (this.isDragging = false));
+    canvas.addEventListener("mouseleave", () => (this.isDragging = false));
 
     // 触摸支持
-    canvas.addEventListener('touchstart', (e) => {
+    canvas.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         this.isDragging = true;
         this.lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }
     });
 
-    canvas.addEventListener('touchmove', (e) => {
+    canvas.addEventListener("touchmove", (e) => {
       if (this.isDragging && e.touches.length === 1) {
-        const dx = (e.touches[0].clientX - this.lastMouse.x) / this.width * Math.PI;
-        const dy = (e.touches[0].clientY - this.lastMouse.y) / this.height * Math.PI;
+        const dx =
+          ((e.touches[0].clientX - this.lastMouse.x) / this.width) * Math.PI;
+        const dy =
+          ((e.touches[0].clientY - this.lastMouse.y) / this.height) * Math.PI;
 
         this.azimuth += dx;
-        this.altitude = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.altitude - dy));
+        this.altitude = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2, this.altitude - dy),
+        );
 
         this.setCameraOrientation(
           this.azimuth * RAD2DEG,
           this.altitude * RAD2DEG,
-          0
+          0,
         );
 
         this.lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -400,10 +424,10 @@ export class SkyRenderer {
       e.preventDefault();
     });
 
-    canvas.addEventListener('touchend', () => this.isDragging = false);
+    canvas.addEventListener("touchend", () => (this.isDragging = false));
 
     // 滚轮缩放
-    canvas.addEventListener('wheel', (e) => {
+    canvas.addEventListener("wheel", (e) => {
       const fov = this.camera.fov + e.deltaY * 0.05;
       this.camera.fov = Math.max(10, Math.min(120, fov));
       this.camera.updateProjectionMatrix();
@@ -411,7 +435,7 @@ export class SkyRenderer {
     });
 
     // 点击检测
-    canvas.addEventListener('click', (e) => {
+    canvas.addEventListener("click", (e) => {
       if (this.isDragging) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -420,12 +444,24 @@ export class SkyRenderer {
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
-      const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+      const intersects = this.raycaster.intersectObjects(
+        this.scene.children,
+        true,
+      );
 
       for (const hit of intersects) {
-        if (hit.object.userData?.type === 'dso') {
+        if (hit.object.userData?.type === "dso") {
           if (this.onObjectClick) {
             this.onObjectClick(hit.object.userData);
+          }
+          return;
+        }
+        if (hit.object.userData?.type === "planet") {
+          if (this.onObjectClick) {
+            this.onObjectClick({
+              type: "planet",
+              data: hit.object.userData,
+            });
           }
           return;
         }
@@ -436,13 +472,13 @@ export class SkyRenderer {
         const direction = this.raycaster.ray.direction.clone();
         const ra = Math.atan2(direction.z, direction.x) * RAD2DEG;
         const dec = Math.asin(Math.max(-1, Math.min(1, direction.y))) * RAD2DEG;
-        this.onObjectClick({ type: 'sky', ra, dec });
+        this.onObjectClick({ type: "sky", ra, dec });
       }
     });
   }
 
   _setupResize() {
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       this.width = this.container.clientWidth;
       this.height = this.container.clientHeight;
       this.camera.aspect = this.width / this.height;
@@ -459,22 +495,23 @@ export class SkyRenderer {
     this.layers[name] = !this.layers[name];
 
     switch (name) {
-      case 'stars':
+      case "stars":
         if (this.starMesh) this.starMesh.visible = this.layers.stars;
         break;
-      case 'constellations':
-        if (this.constellationGroup) this.constellationGroup.visible = this.layers.constellations;
+      case "constellations":
+        if (this.constellationGroup)
+          this.constellationGroup.visible = this.layers.constellations;
         break;
-      case 'dso':
+      case "dso":
         if (this.dsoGroup) this.dsoGroup.visible = this.layers.dso;
         break;
-      case 'grid':
+      case "grid":
         if (this.gridGroup) this.gridGroup.visible = this.layers.grid;
         break;
-      case 'galaxy':
+      case "galaxy":
         this.galaxy.toggleVisible();
         break;
-      case 'planets':
+      case "planets":
         this.solarSystem.toggleVisible();
         break;
     }

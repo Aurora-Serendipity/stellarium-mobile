@@ -199,8 +199,10 @@ export class AtmosphereRenderer {
       // 例如根据太阳高度调整天顶变暗强度
       if (mesh.name === "zenithDarkening") {
         // 太阳高度越高，天顶变暗越强（模拟白天）
-        const intensity =
-          sunAltitude > 0 ? 0.1 + (sunAltitude / 90) * 0.5 : 0.3;
+        const intensity = Math.min(
+          1.0,
+          sunAltitude > 0 ? 0.1 + (sunAltitude / 90) * 0.5 : 0.3,
+        );
         mesh.material.uniforms.uIntensity.value = intensity;
       }
     }

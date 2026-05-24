@@ -179,12 +179,6 @@ export class MeteorRenderer {
       // 淡出效果
       const alpha = meteor.life / meteor.maxLife;
       meteor.mesh.material.opacity = alpha;
-
-      // 尾迹效果
-      if (meteor.trail) {
-        meteor.trail.position.copy(meteor.mesh.position);
-        meteor.trail.lookAt(meteor.mesh.position.clone().sub(meteor.velocity));
-      }
     }
   }
 

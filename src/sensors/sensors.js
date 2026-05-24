@@ -158,7 +158,11 @@ export class SensorManager {
 
     const sinp = 2 * (w * y - z * x);
     const pitch =
-      Math.abs(sinp) >= 1 ? Math.copySign(Math.PI / 2, sinp) : Math.asin(sinp);
+      Math.abs(sinp) >= 1
+        ? sinp >= 0
+          ? Math.PI / 2
+          : -Math.PI / 2
+        : Math.asin(sinp);
 
     const siny_cosp = 2 * (w * z + x * y);
     const cosy_cosp = 1 - 2 * (y * y + z * z);

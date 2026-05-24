@@ -93,6 +93,8 @@ class StellariumApp {
     this.atmosphere = new AtmosphereRenderer(this.renderer.scene);
     this.atmosphere.create();
     this.planetDetails = new PlanetDetailsRenderer(this.renderer.scene);
+    this.planetDetails.createJupiterMoons();
+    this.planetDetails.createSaturnRings();
 
     // 设置面板
     this.settingsUI = new SettingsUI(this);
@@ -205,12 +207,19 @@ class StellariumApp {
     const moonAlt = this._calculateAltitude(moonEq.ra, moonEq.dec, lst);
     this.atmosphere?.update(sunAlt, moonAlt);
 
-    // 性能优化
+    // 性能优化（先更新相机矩阵确保视锥正确）
     if (this.performance && this.renderer && this.renderer.camera) {
+      this.renderer.camera.updateMatrixWorld();
       this.performance.updateFrustum();
       const cameraDir = new THREE.Vector3();
       this.renderer.camera.getWorldDirection(cameraDir);
-      this.performance.updateLOD(this.renderer.starMesh, cameraDir);
+      if (this.renderer.starMesh) {
+        try {
+          this.performance.updateLOD(this.renderer.starMesh, cameraDir);
+        } catch (e) {
+          // updateLOD 失败不影响渲染
+        }
+      }
       this.performance.updateStats();
     }
 
@@ -244,8 +253,23 @@ class StellariumApp {
     this.renderer.solarSystem.updatePositions(positions);
     this.renderer.solarSystem.updateMoonPhase(moonEq.phase);
 
-    // 更新木星卫星
-    this.planetDetails?.updateJupiterMoons(jd);
+    // 更新木星卫星位置（跟随木星）
+    if (this.planetDetails && positions.jupiter) {
+      const jupiterGroup = this.renderer.solarSystem.objects.get("jupiter");
+      if (jupiterGroup) {
+        this.planetDetails.updateJupiterMoons(jd, jupiterGroup.position);
+      }
+    }
+
+    // 更新土星环位置（跟随土星）
+    if (this.planetDetails?.saturnRingGroup && positions.saturn) {
+      const saturnGroup = this.renderer.solarSystem.objects.get("saturn");
+      if (saturnGroup) {
+        this.planetDetails.saturnRingGroup.position.copy(saturnGroup.position);
+        this.planetDetails.saturnRingGroup.visible =
+          positions.saturn.altitude > 0;
+      }
+    }
   }
 
   _calculateAltitude(ra, dec, lst) {
@@ -285,6 +309,8 @@ class StellariumApp {
   _onObjectClick(obj) {
     if (obj.type === "dso") {
       this._showObjectInfo(obj.data);
+    } else if (obj.type === "planet") {
+      this._showPlanetInfo(obj.data);
     } else if (obj.type === "sky") {
       const nearest = this._findNearestStar(obj.ra, obj.dec);
       if (nearest) this._showStarInfo(nearest);
@@ -336,13 +362,28 @@ class StellariumApp {
     this.ui.infoName.textContent =
       star.name || star.bayer || `恒星 #${star.id}`;
     this.ui.infoDetails.innerHTML = `
-      <div>星等: ${star.magnitude.toFixed(2)}</div>
-      <div>光谱型: ${star.spectralType}</div>
+      <div>星等: ${(star.magnitude || star.mag || 0).toFixed(2)}</div>
+      <div>光谱型: ${star.spectralType || star.sp || "未知"}</div>
       <div>赤经: ${star.ra.toFixed(2)}°</div>
       <div>赤纬: ${star.dec.toFixed(2)}°</div>
-      ${star.constellation ? `<div>星座: ${star.constellation}</div>` : ""}
+      ${star.constellation || star.con ? `<div>星座: ${star.constellation || star.con}</div>` : ""}
       ${star.bayer ? `<div>拜耳名: ${star.bayer}</div>` : ""}
       ${star.parallax > 0 ? `<div>距离: ${(1000 / star.parallax).toFixed(1)} 光年</div>` : ""}
+    `;
+    this.ui.objectInfo.classList.add("visible");
+    clearTimeout(this._infoTimeout);
+    this._infoTimeout = setTimeout(() => {
+      this.ui.objectInfo.classList.remove("visible");
+    }, 5000);
+  }
+
+  _showPlanetInfo(planetData) {
+    const visual = planetData.visual;
+    this.ui.infoName.textContent = `${visual.symbol} ${visual.name}`;
+    this.ui.infoDetails.innerHTML = `
+      <div>类型: 太阳系天体</div>
+      ${visual.size ? `<div>视直径: ${visual.size.toFixed(3)} 单位</div>` : ""}
+      ${visual.hasRings ? "<div>特征: 有环系统</div>" : ""}
     `;
     this.ui.objectInfo.classList.add("visible");
     clearTimeout(this._infoTimeout);
@@ -435,12 +476,18 @@ class StellariumApp {
   }
 
   // 公共控制接口
-  toggleSensor() {
+  async toggleSensor() {
     this.sensorEnabled = !this.sensorEnabled;
     const btn = document.getElementById("btn-sensor");
     if (this.sensorEnabled) {
-      this.sensors.start();
-      btn?.classList.add("active");
+      const started = await this.sensors.start();
+      if (started) {
+        btn?.classList.add("active");
+      } else {
+        // 传感器启动失败，恢复状态
+        this.sensorEnabled = false;
+        btn?.classList.remove("active");
+      }
     } else {
       this.sensors.stop();
       btn?.classList.remove("active");

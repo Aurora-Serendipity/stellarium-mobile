@@ -74,20 +74,21 @@ export class PerformanceManager {
 
     let visibleCount = 0;
     const cameraPos = this.camera.position;
+    const _pos = new THREE.Vector3(); // 复用以减少 GC 压力
 
     for (let i = 0; i < sizes.length; i++) {
       const x = positions[i * 3];
       const y = positions[i * 3 + 1];
       const z = positions[i * 3 + 2];
 
-      const pos = new THREE.Vector3(x, y, z);
-      const distance = pos.distanceTo(cameraPos);
-      const inView = this.isInView(pos, 0.01);
+      _pos.set(x, y, z);
+      const distance = _pos.distanceTo(cameraPos);
+      const inView = this.isInView(_pos, 0.01);
 
       if (inView) {
         visibleCount++;
-        // 根据距离调整大小
-        const distFactor = Math.max(0.3, 1 - distance);
+        // 根据距离调整大小（最小保持 50%）
+        const distFactor = Math.max(0.5, 1 - distance);
         sizes[i] = originalSizes[i] * distFactor;
       } else {
         sizes[i] = 0; // 隐藏

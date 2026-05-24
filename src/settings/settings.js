@@ -8,19 +8,29 @@ export class SettingsManager {
     this.settings = this._loadSettings();
   }
 
+  _isLocalStorageAvailable() {
+    try {
+      return typeof localStorage !== "undefined" && localStorage !== null;
+    } catch (e) {
+      return false;
+    }
+  }
+
   _loadSettings() {
     try {
-      const saved = localStorage.getItem('stellarium_settings');
-      if (saved) return JSON.parse(saved);
+      if (this._isLocalStorageAvailable()) {
+        const saved = localStorage.getItem("stellarium_settings");
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {
-      console.warn('无法加载设置:', e);
+      console.warn("无法加载设置:", e);
     }
 
     return {
       location: {
         latitude: 39.9,
         longitude: 116.4,
-        useGPS: true
+        useGPS: true,
       },
       display: {
         showStars: true,
@@ -30,33 +40,42 @@ export class SettingsManager {
         showGalaxy: true,
         showPlanets: true,
         showLabels: true,
-        magnitudeLimit: 6.0
+        magnitudeLimit: 6.0,
       },
       time: {
         useRealTime: true,
-        timeSpeed: 1
+        timeSpeed: 1,
       },
       sensor: {
         enabled: true,
-        smoothing: 0.3
-      }
+        smoothing: 0.3,
+      },
     };
   }
 
   save() {
     try {
-      localStorage.setItem('stellarium_settings', JSON.stringify(this.settings));
+      if (this._isLocalStorageAvailable()) {
+        localStorage.setItem(
+          "stellarium_settings",
+          JSON.stringify(this.settings),
+        );
+      }
     } catch (e) {
-      console.warn('无法保存设置:', e);
+      console.warn("无法保存设置:", e);
     }
   }
 
+  getAll() {
+    return { ...this.settings };
+  }
+
   get(key) {
-    return key.split('.').reduce((obj, k) => obj?.[k], this.settings);
+    return key.split(".").reduce((obj, k) => obj?.[k], this.settings);
   }
 
   set(key, value) {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let obj = this.settings;
     for (let i = 0; i < keys.length - 1; i++) {
       if (!obj[keys[i]]) obj[keys[i]] = {};
@@ -67,7 +86,13 @@ export class SettingsManager {
   }
 
   reset() {
-    localStorage.removeItem('stellarium_settings');
+    try {
+      if (this._isLocalStorageAvailable()) {
+        localStorage.removeItem("stellarium_settings");
+      }
+    } catch (e) {
+      console.warn("无法清除设置:", e);
+    }
     this.settings = this._loadSettings();
   }
 }
